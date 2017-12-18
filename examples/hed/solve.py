@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import sys
-caffe_root = '../../' 
+caffe_root = '/opt/caffe/'
 sys.path.insert(0, caffe_root + 'python')
 import caffe
 
@@ -36,11 +36,17 @@ def interp_surgery(net, layers):
 # http://nbviewer.ipython.org/github/BVLC/caffe/blob/master/examples/net_surgery.ipynb
 base_weights = '5stage-vgg.caffemodel'
 
+print("*****************Successfully loaded caffemodel**********************")
+
 # init
-caffe.set_mode_gpu()
-caffe.set_device(0)
+caffe.set_mode_cpu()
+# caffe.set_device(0)
+
+print('******************Successfully set cpu mode**********************')
 
 solver = caffe.SGDSolver('solver.prototxt')
+
+print('*****************SGD finished************************')
 
 # do net surgery to set the deconvolution weights for bilinear interpolation
 interp_layers = [k for k in solver.net.params.keys() if 'up' in k]

@@ -16,4 +16,4 @@ weight_decay: 0.0002
 snapshot: 1000
 snapshot_prefix: "hed"
 # uncomment the following to default to CPU mode solving
-# solver_mode: CPU 
+solver_mode: CPU
