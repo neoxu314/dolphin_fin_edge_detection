@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ## Holistically-Nested Edge Detection
 
 Created by Saining Xie at UC San Diego
@@ -63,4 +62,3 @@ This code is based on Caffe. Thanks to the contributors of Caffe. Thanks @shelha
     }
 
 If you encounter any issue when using our code or model, please let me know.
-
