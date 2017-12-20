@@ -5,7 +5,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 # Assume this script is in the scripts directory.
 projectDir=$( cd $SCRIPT_DIR/.. && pwd )
-docker run -ti --name hed-dev \
+nvidia-docker run -ti --name hed-dev \
     -h hed-dev \
     -e http_proxy=http://alb-cache.massey.ac.nz:8080 \
     -p 8888:8888 \

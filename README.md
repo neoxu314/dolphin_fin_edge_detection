@@ -1,3 +1,19 @@
+# NOTICE
+This is an project of NIWA based on the paper and corresponding code of Holistically-Nested Edge Detection.
+
+
+## Reference: 
+@InProceedings{xie15hed,
+  author = {"Xie, Saining and Tu, Zhuowen"},
+  Title = {Holistically-Nested Edge Detection},
+  Booktitle = "Proceedings of IEEE International Conference on Computer Vision",
+  Year  = {2015},
+}
+
+---
+
+# Origin README of Holistically-Nested Edge Detection
+
 ## Holistically-Nested Edge Detection
 
 Created by Saining Xie at UC San Diego
