@@ -1,45 +1,81 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+# NOTICE
+This is an project of NIWA based on the paper and corresponding code of Holistically-Nested Edge Detection.
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
-
----
-
-## Edit a file
-
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
-
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
+## Reference: 
+@InProceedings{xie15hed,
+  author = {"Xie, Saining and Tu, Zhuowen"},
+  Title = {Holistically-Nested Edge Detection},
+  Booktitle = "Proceedings of IEEE International Conference on Computer Vision",
+  Year  = {2015},
+}
 
 ---
 
-## Create a file
+# Origin README of Holistically-Nested Edge Detection
 
-Next, you’ll add a new file to this repository.
+## Holistically-Nested Edge Detection
 
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
+Created by Saining Xie at UC San Diego
 
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
+### Introduction:
 
----
+<img src="http://pages.ucsd.edu/~ztu/hed.jpg" width="400">
 
-## Clone a repository
+We develop a new edge detection algorithm, holistically-nested edge detection (HED), which performs image-to-image prediction by means of a deep learning model that leverages fully convolutional neural networks and deeply-supervised nets.  HED automatically learns rich hierarchical representations (guided by deep supervision on side responses) that are important in order to resolve the challenging ambiguity in edge and object boundary detection. We significantly advance the state-of-the-art on the BSD500 dataset (ODS F-score of .790) and the NYU Depth dataset (ODS F-score of .746), and do so with an improved speed (0.4s per image). Detailed description of the system can be found in our [paper](http://arxiv.org/abs/1504.06375).
 
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
+### Citations
 
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
+If you are using the code/model/data provided here in a publication, please cite our paper:
 
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+    @InProceedings{xie15hed,
+      author = {"Xie, Saining and Tu, Zhuowen"},
+      Title = {Holistically-Nested Edge Detection},
+      Booktitle = "Proceedings of IEEE International Conference on Computer Vision",
+      Year  = {2015},
+    }
+
+### Changelog
+
+If you have downloaded the previous version (testing code) of HED, please note that we updated the code base to the new version of Caffe. We uploaded a new pretrained model with better performance. We adopted the python interface written for the FCN paper instead of our own implementation for training and testing. The evaluation protocol doesn't change.
+
+### Pretrained model
+
+We provide the pretrained model and training/testing code for the edge detection framework Holistically-Nested Edge Detection (HED). Please see the Arxiv or ICCV paper for technical details. The pretrained model (fusion-output) gives ODS=.790 and OIS=.808 result on BSDS benchmark dataset.
+  0. Download the pretrained model (56MB) from (http://vcl.ucsd.edu/hed/hed_pretrained_bsds.caffemodel) and place it in examples/hed/ folder.
+
+### Installing 
+ 0. Install prerequisites for Caffe(http://caffe.berkeleyvision.org/installation.html#prequequisites)
+ 0. Modified-caffe for HED: https://github.com/s9xie/hed.git
+
+### Training HED
+To reproduce our results on BSDS500 dataset:
+ 0. data: Download the augmented BSDS data (1.2GB) from (http://vcl.ucsd.edu/hed/HED-BSDS.tar) and extract it in data/ folder
+ 0. initial model: Download fully convolutional VGG model (248MB) from (http://vcl.ucsd.edu/hed/5stage-vgg.caffemodel) and put it in examples/hed folder
+ 0. run the python script **python solve.py** in examples/hed
+
+### Testing HED
+Please refer to the IPython Notebook in examples/hed/ to test a trained model. The fusion-output, and individual side-output from 5 scales will be produced after one forward pass.
+ 
+Note that if you want to evaluate the results on BSDS benchmarking dataset, you should do the standard non-maximum suppression (NMS) and edge thinning. We used Piotr's Structured Forest matlab toolbox available here **https://github.com/pdollar/edges**. Some helper functions are also provided in the [eval/ folder](https://github.com/s9xie/hed_release-deprecated/tree/master/examples/eval). 
+
+### Batch Processing
+
+[Jun-Yan Zhu](https://people.eecs.berkeley.edu/~junyanz/) from UC Berkeley recently applied HED for their [Image-to-Image Translation](https://phillipi.github.io/pix2pix/) work. A nice script for batch-processing HED edge detection can be found [here](https://github.com/phillipi/pix2pix/tree/master/scripts/edges). Thanks Jun-Yan!
+
+### Precomputed Results
+If you want to compare your method with HED and need the precomputed results, you can download them from (http://vcl.ucsd.edu/hed/eval_results.tar).
+
+
+### Acknowledgment: 
+This code is based on Caffe. Thanks to the contributors of Caffe. Thanks @shelhamer and @longjon for providing fundamental implementations that enable fully convolutional training/testing in Caffe.
+
+    @misc{Jia13caffe,
+      Author = {Yangqing Jia},
+      Title = { {Caffe}: An Open Source Convolutional Architecture for Fast Feature Embedding},
+      Year  = {2013},
+      Howpublished = {\url{http://caffe.berkeleyvision.org/}}
+    }
+
+If you encounter any issue when using our code or model, please let me know.
+
