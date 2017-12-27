@@ -5,6 +5,8 @@ import cv2
 import sys
 import os
 import re
+import numpy as np
+from PIL import Image
 
 
 def get_image_paths(dir_path):
@@ -15,7 +17,7 @@ def get_image_paths(dir_path):
     return paths
 
 
-def get_boundary(input_dir_path, output_dir_path):
+def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
     '''
     Gets the image of extracted boundary.
 
@@ -26,9 +28,19 @@ def get_boundary(input_dir_path, output_dir_path):
     input_image_paths = get_image_paths(input_dir_path)
 
     for input_path in input_image_paths:
-        print('********Processing image: ', input_path)
+        print('********Processing boundary: ', input_path)
 
-        image = cv2.imread(input_path, 0)
+        # Converts the non-transparent pixel to black
+        original_image = np.array(Image.open(input_path))
+        image = np.array(Image.open(input_path))
+
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                if image[i][j][3] > 0:
+                    image[i][j][0] = 0
+                    image[i][j][1] = 0
+                    image[i][j][2] = 0
+
         # constructs a 3 x 3 element
         element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         dilate = cv2.dilate(image, element)
@@ -43,12 +55,37 @@ def get_boundary(input_dir_path, output_dir_path):
         # reverses colour
         # result = cv2.bitwise_not(result)
 
-        # shows images
-        # cv2.imshow("result", result)
+        result_black = result.copy()
+
+        for i in range(result_black.shape[0]):
+            for j in range(result_black.shape[1]):
+                if result_black[i][j][3] == 0:
+                    result_black[i][j][3] = 255
+                    result_black[i][j][0] = 0
+                    result_black[i][j][1] = 0
+                    result_black[i][j][2] = 0
+                # elif result[i][j][3] > 0:
+                #     result[i][j][0] = 0
+                #     result[i][j][1] = 0
+                #     result[i][j][2] = 0
+        # result_black = cv2.bitwise_not(result_black)
 
         path, filename = os.path.split(input_path)
-        output_path = os.path.join(output_dir_path, filename)
-        cv2.imwrite(output_path, result)
+        output_path = os.path.join(boundary_save_path, filename)
+        cv2.imwrite(output_path, result_black)
+
+        get_overlay_image(original_image, result, overlay_save_path, filename)
+
+
+def get_overlay_image(image1, image2, overlay_save_path, filename):
+    alpha = 0.5
+
+    cv2.addWeighted(image2, alpha, image1, 1, 0, image1)
+    # cv2.imshow('overlay', image1)
+    # cv2.waitKey(0)
+    output_path = os.path.join(overlay_save_path, filename)
+    print('********Processing overlay: ', output_path)
+    cv2.imwrite(filename, image1)
 
 
 def main(argv):
@@ -57,13 +94,15 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-image-path', metavar='Path',
                         help='Path to the input segmentation image (default: None)')
-    parser.add_argument('--output-image-path', metavar='Path', help='Path to the ouput image (default: None)')
+    parser.add_argument('--boundary-save-path', metavar='Path', help='Path to save the boundary image (default: None)')
+    parser.add_argument('--overlay-save-path', metavar='Path', help='Path to save the overlay image (default: None)')
     args = parser.parse_args(argv)
     input_path =args.input_image_path
-    output_path =args.output_image_path
+    boundary_save_path = args.boundary_save_path
+    overlay_save_path = args.overlay_save_path
 
     # Gets the image of extracted boundary
-    get_boundary(input_path, output_path)
+    get_boundary_overlay(input_path, boundary_save_path, overlay_save_path)
 
 
 if __name__ == '__main__':
