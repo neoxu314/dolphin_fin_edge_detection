@@ -50,7 +50,7 @@ def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
         result = cv2.absdiff(dilate, erode)
 
         # binarise grayscale image
-        retval, result = cv2.threshold(result, 40, 255, cv2.THRESH_BINARY);
+        retval, result = cv2.threshold(result, 40, 255, cv2.THRESH_BINARY)
 
         # reverses colour
         # result = cv2.bitwise_not(result)
@@ -64,11 +64,6 @@ def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
                     result_black[i][j][0] = 0
                     result_black[i][j][1] = 0
                     result_black[i][j][2] = 0
-                # elif result[i][j][3] > 0:
-                #     result[i][j][0] = 0
-                #     result[i][j][1] = 0
-                #     result[i][j][2] = 0
-        # result_black = cv2.bitwise_not(result_black)
 
         path, filename = os.path.split(input_path)
         output_path = os.path.join(boundary_save_path, filename)
@@ -85,7 +80,7 @@ def get_overlay_image(image1, image2, overlay_save_path, filename):
     # cv2.waitKey(0)
     output_path = os.path.join(overlay_save_path, filename)
     print('********Processing overlay: ', output_path)
-    cv2.imwrite(filename, image1)
+    cv2.imwrite(output_path, image1)
 
 
 def main(argv):
