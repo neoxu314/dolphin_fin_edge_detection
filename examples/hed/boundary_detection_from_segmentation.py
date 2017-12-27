@@ -10,7 +10,11 @@ from PIL import Image
 
 
 def get_image_paths(dir_path):
-    """ Returns a list of paths to JPG and PNG files in dir_path. """
+    '''
+    Returns a list of paths to JPG and PNG files in dir_path.
+    :param dir_path: the path of the input directory
+    :return: a list of paths to JPG and PNG files in dir_path.
+    '''
     regex = re.compile(r'.*\.(jpe?g|png)$', re.IGNORECASE)
     paths = [os.path.join(dir_path, f) for f in os.listdir(dir_path)
              if os.path.isfile(os.path.join(dir_path, f)) and regex.match(f)]
@@ -19,10 +23,11 @@ def get_image_paths(dir_path):
 
 def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
     '''
-    Gets the image of extracted boundary.
-
+    Saves the overlay images and images of extracted boundary to the target path. The overlay image is the overlay the
+    extracted boundary on the original input image.
     :param input_dir_path: The path to input images
-    :param output_dir_path: The path to output images
+    :param boundary_save_path: The path to save the images of extracted boundary
+    :param overlay_save_path: The path to save the overlay images
     :return: None
     '''
     input_image_paths = get_image_paths(input_dir_path)
@@ -73,6 +78,14 @@ def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
 
 
 def get_overlay_image(image1, image2, overlay_save_path, filename):
+    '''
+    Save the overlay image.
+    :param image1: The images of extracted boundary
+    :param image2: The original input images
+    :param overlay_save_path: The directory path to the save the overlay images
+    :param filename: The filename of the original input images
+    :return: None
+    '''
     alpha = 0.5
 
     cv2.addWeighted(image2, alpha, image1, 1, 0, image1)
