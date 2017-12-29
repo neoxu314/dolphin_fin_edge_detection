@@ -28,10 +28,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python2 -m ipykernel install --user \
     && python3 -m pip install ipykernel \
     && python3 -m ipykernel install --user \
-    && pip install -U --pre pip setuptools wheel \
-    && pip install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow \
+    && pip2 install -U --pre pip setuptools wheel \
+    && pip2 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor\
     && pip3 install -U --pre pip setuptools wheel \
-    && pip3 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow
+    && pip3 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor\
+    && pip2 install -U --pre tensorflow-gpu \
+    && pip3 install -U --pre tensorflow-gpu \
+    && pip2 install -U --pre keras \
+    && pip3 install -U --pre keras
 #    && cd ~ \
 #    && git clone https://github.com/zeakey/hed.git \
 #    && cd hed \

@@ -46,6 +46,7 @@ def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
                     image[i][j][1] = 0
                     image[i][j][2] = 0
 
+
         # constructs a 3 x 3 element
         element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         dilate = cv2.dilate(image, element)
@@ -86,8 +87,8 @@ def get_overlay_image(image1, image2, overlay_save_path, filename):
     :param filename: The filename of the original input images
     :return: None
     '''
-    alpha = 0.5
-
+    alpha = 0.2
+    image2 = cv2.bitwise_not(image2)
     cv2.addWeighted(image2, alpha, image1, 1, 0, image1)
     # cv2.imshow('overlay', image1)
     # cv2.waitKey(0)

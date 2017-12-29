@@ -22,8 +22,8 @@ def get_image_paths(dir_path):
 
 
 def main():
-    root_directory = '../../data/HED-BSDS/Final_Database'
-    list_path = '../../data/HED-BSDS/segmentation_fin.lst'
+    root_directory = '../../data/Final_Database'
+    list_path = '../../data/segmentation_fin.lst'
     folder_names = []
     sub_directories = []
     image_paths = []
@@ -38,7 +38,7 @@ def main():
     print(folder_names)
     print(len(folder_names))
     for folder_name in folder_names:
-        path = os.path.join('../../data/HED-BSDS/Final_Database', folder_name)
+        path = os.path.join('../../data/Final_Database', folder_name)
         # path = os.path.join(path, '/PNG')
         path = path + '/PNG'
         sub_directories.append(path)
