@@ -78,7 +78,7 @@ def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
         output_path = os.path.join(boundary_save_path, filename)
         cv2.imwrite(output_path, result_black)
 
-        get_overlay_image(original_image, result, overlay_save_path, filename)
+        # get_overlay_image(original_image, result, overlay_save_path, filename)
 
 
 def get_overlay_image(image1, image2, overlay_save_path, filename):
@@ -230,7 +230,7 @@ def data_augmentation(directories):
             os.makedirs(augmented_image_save_dir)
 
         for image in images_list:
-            for rotation_angle in range(20, 380, 20):
+            for rotation_angle in range(0, 40, 10):
                 # load the image and show it
                 img = cv2.imread(image, cv2.IMREAD_UNCHANGED)
 
@@ -268,8 +268,43 @@ def data_augmentation(directories):
                 cv2.imwrite(rotated_image_save_path_0_5, resized_0_5)
                 cv2.imwrite(rotated_image_save_path_1_5, resized_1_5)
 
+            for rotation_angle in range(-10, -40, -10):
+                # load the image and show it
+                img = cv2.imread(image, cv2.IMREAD_UNCHANGED)
+
+                # grab the dimensions of the image and calculate the center of the image
+                (h, w) = img.shape[:2]
+                center = (w / 2, h / 2)
+
+                # rotate the image by 180 degrees
+                M = cv2.getRotationMatrix2D(center, rotation_angle, 1.0)
+                rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR)
+
+                # resize
+                dim_0_5 = (int(0.5 * w), int(0.5 * h))
+                resized_0_5 = cv2.resize(rotated, dim_0_5, interpolation=cv2.INTER_AREA)
+                dim_1_5 = (int(1.5 * rotated.shape[1]), int(rotated.shape[0] * 1.5))
+                resized_1_5 = cv2.resize(rotated, dim_1_5, interpolation=cv2.INTER_AREA)
+
+                path, filename = os.path.split(image)
+                filename = os.path.splitext(filename)[0]
 
 
+                rotated_image_name = filename + '_rotation' + `rotation_angle` + '.png'
+                rotated_image_name_0_5 = filename + '_rotation' + `rotation_angle` + '_zoom0_5' + '.png'
+                rotated_image_name_1_5 = filename + '_rotation' + `rotation_angle` + '_zoom1_5' + '.png'
+
+                print('**************saving original: ', rotated_image_name)
+                print('**************saving zoom 0.5: ', rotated_image_name_0_5)
+                print('**************saving zoom 1.5: ', rotated_image_name_1_5)
+
+                rotated_image_save_path = os.path.join(augmented_image_save_dir, rotated_image_name)
+                rotated_image_save_path_0_5 = os.path.join(augmented_image_save_dir, rotated_image_name_0_5)
+                rotated_image_save_path_1_5 = os.path.join(augmented_image_save_dir, rotated_image_name_1_5)
+
+                cv2.imwrite(rotated_image_save_path, rotated)
+                cv2.imwrite(rotated_image_save_path_0_5, resized_0_5)
+                cv2.imwrite(rotated_image_save_path_1_5, resized_1_5)
 
 
 def parse_args(argv):

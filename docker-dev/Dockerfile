@@ -1,4 +1,4 @@
-FROM bvlc/caffe:gpu
+FROM bvlc/caffe:cpu
 
 ARG uid=1001
 ARG group=
@@ -32,8 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip2 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor\
     && pip3 install -U --pre pip setuptools wheel \
     && pip3 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor\
-    && pip2 install -U --pre tensorflow-gpu \
-    && pip3 install -U --pre tensorflow-gpu \
+    && pip2 install -U --pre tensorflow \
+    && pip3 install -U --pre tensorflow \
     && pip2 install -U --pre keras \
     && pip3 install -U --pre keras
 #    && cd ~ \
