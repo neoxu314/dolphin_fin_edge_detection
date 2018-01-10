@@ -13,6 +13,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
+def test():
+    edge_image = get_fin_boundary_image('../../data/new_dataset/crop/0100_HG_130208_1302_E3_KR_AII.png')
+    cv2.imwrite('../../data/new_dataset/crop/0100_HG_130208_1302_E3_KR_AII_edge.png', edge_image)
+
+
 def get_filename_from_path(filepath):
     path, filename = os.path.split(filepath)
     filename = os.path.splitext(filename)[0]
@@ -173,6 +178,8 @@ def get_rotation_image(img_path, rotation_angle):
 
 
 def get_fin_boundary_image(img_path):
+    problem = False
+
     # Read the image
     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
 
@@ -197,44 +204,52 @@ def get_fin_boundary_image(img_path):
 
     # The second removal of noise (keep the biggest contour of the image)
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) #convert the processed image to gray scale image
-    (height, width) = gray_img.shape[:2]
-    fin_img = np.zeros((height, width, 4), np.uint8) # initialise the fin_img as a transparent image
-    im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    largest_area = 0
-    largest_area_index = 0
-    for i in range(len(contours)): # find the largest contour in the image
-        contour_area = cv2.contourArea(contours[i])
-        if contour_area > largest_area:
-            largest_area = contour_area
-            largest_area_index = i
-    cnt = contours[largest_area_index]
-    cv2.drawContours(fin_img, [cnt], -1, (255, 255, 255), -1) # draw the extracted fin on the transparent image
-    for i in range(fin_img.shape[0]):
-        for j in range(fin_img.shape[1]):
-            # if the pixel is white (fin is coloured by white), set the alpha channel of this pixel to 255
-            if fin_img[i][j][0] == 255 and fin_img[i][j][1] == 255 and fin_img[i][j][2] == 255:
-                fin_img[i][j][3] = 255
-                fin_img[i][j][0] = 0
-                fin_img[i][j][1] = 0
-                fin_img[i][j][2] = 0
 
-    # Contour extraction using morphological operation
-    element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # constructs a 3 x 3 element
-    dilate = cv2.dilate(fin_img, element, iterations=1)
-    erode = cv2.erode(fin_img, element)
-    result = cv2.absdiff(dilate, erode) # subtracts eroded image from dilated image to get the boundary
+    try:
+        (height, width) = gray_img.shape[:2]
+        fin_img = np.zeros((height, width, 4), np.uint8) # initialise the fin_img as a transparent image
+        im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        largest_area = 0
+        largest_area_index = 0
+        for i in range(len(contours)): # find the largest contour in the image
+            contour_area = cv2.contourArea(contours[i])
+            if contour_area > largest_area:
+                largest_area = contour_area
+                largest_area_index = i
+        cnt = contours[largest_area_index]
+        cv2.drawContours(fin_img, [cnt], -1, (255, 255, 255), -1) # draw the extracted fin on the transparent image
+        for i in range(fin_img.shape[0]):
+            for j in range(fin_img.shape[1]):
+                # if the pixel is white (fin is coloured by white), set the alpha channel of this pixel to 255
+                if fin_img[i][j][0] == 255 and fin_img[i][j][1] == 255 and fin_img[i][j][2] == 255:
+                    fin_img[i][j][3] = 255
+                    fin_img[i][j][0] = 0
+                    fin_img[i][j][1] = 0
+                    fin_img[i][j][2] = 0
 
-    # Covert the transparent pixel to white pixel
-    for i in range(result.shape[0]):
-        for j in range(result.shape[1]):
-            if result[i][j][3] == 0:
-                result[i][j][3] = 255
-                result[i][j][0] = 255
-                result[i][j][1] = 255
-                result[i][j][2] = 255
+        # Contour extraction using morphological operation
+        element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # constructs a 3 x 3 element
+        dilate = cv2.dilate(fin_img, element, iterations=1)
+        erode = cv2.erode(fin_img, element)
+        result = cv2.absdiff(dilate, erode) # subtracts eroded image from dilated image to get the boundary
 
-    # Return the result (fin-contour image)
-    return result
+        # Covert the transparent pixel to white pixel
+        for i in range(result.shape[0]):
+            for j in range(result.shape[1]):
+                if result[i][j][3] == 0:
+                    result[i][j][3] = 255
+                    result[i][j][0] = 255
+                    result[i][j][1] = 255
+                    result[i][j][2] = 255
+    except BaseException:
+        # Catch error of cv2.findContours(), return False
+        print('****cv2.findContours() Error!****')
+        problem = True
+        result = -1
+        return problem, result
+    else:
+        # Return the result (fin-contour image)
+        return problem, result
 
 
 def get_image_names(dir_path):
@@ -270,15 +285,23 @@ def get_fin_boundary_from_dir(input_dir_path, boundary_save_path):
     :return: None
     '''
     input_image_paths = get_image_paths(input_dir_path)
-
+    problematic_image_paths = []
     for input_path in input_image_paths:
         print('********Processing boundary: ', input_path)
+        problem, result = get_fin_boundary_image(input_path)
+        if not problem:
+            path, filename = os.path.split(input_path)
+            output_path = os.path.join(boundary_save_path, filename)
+            cv2.imwrite(output_path, result)
+        else:
+            print('****Problematic Image: ', input_path)
+            # Adds the problematic image to array problematic_image_paths
+            problematic_image_paths.append(input_path)
+            continue
 
-
-        result = get_fin_boundary_image(input_path)
-        path, filename = os.path.split(input_path)
-        output_path = os.path.join(boundary_save_path, filename)
-        cv2.imwrite(output_path, result)
+    print('Problematic Images: ', problematic_image_paths)
+    output_problematic_image_lst_file_from_list(problematic_image_paths, os.path.join(boundary_save_path, 'problematic_images.lst'))
+    return problematic_image_paths
 
 
 def get_overlay_image(image1, image2, overlay_save_path, filename):
@@ -345,12 +368,12 @@ def get_image_paths(dir_path):
     return new_paths
 
 
-def output_lst_file_from_list(image_paths, output_image_lst_file_path):
+def output_problematic_image_lst_file_from_list(image_paths, output_image_lst_file_path):
     # list_path = '../../data/segmentation_fin.lst'
     list_path = output_image_lst_file_path
     list_file = open(list_path, 'w')
     for path in image_paths:
-        npath = path[path.find('Final_Database'):]
+        npath = path[path.find('crop')+5:]
         list_file.write("%s\n" % npath)
 
 
@@ -434,7 +457,8 @@ def main(argv):
         get_ground_truth(input_image_path)
     elif cmd == 'test':
         # get_rotation_image('../../data/test_rotation/0006_HG_120601_215_E3_LH_rotation0.png', -10)
-        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig', '../../data/new_dataset_test/crop/gt_boundary')
+        # overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig', '../../data/new_dataset_test/crop/gt_boundary')
+        test()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
