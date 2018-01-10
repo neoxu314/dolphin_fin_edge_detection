@@ -6,148 +6,235 @@ import cv2
 import sys
 import os
 import re
-from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
-from PIL import Image
 import numpy as np
-import Augmentor
+import math
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
-def check_orig_crop_resolution():
-    crop_image_paths = get_image_paths('../../data/new_dataset/crop')
-    orig_image_paths = get_image_paths('../../data/new_dataset/orig')
-
-    problematic_images_paths = []
-
-    for crop_image_path in crop_image_paths:
-        path, filename = os.path.split(crop_image_path)
-        crop_image_name = os.path.splitext(filename)[0]
-        orig_image_path = ""
-
-        for image_path in orig_image_paths:
-            if image_path.find(crop_image_name) >= 0:
-                orig_image_path = image_path
-
-        crop_image = cv2.imread(crop_image_path)
-        orig_image = cv2.imread(orig_image_path)
-
-        (h_crop, w_crop) = crop_image.shape[:2]
-        (h_orig, w_orig) = orig_image.shape[:2]
-
-        print('crop image: ', crop_image_path)
-        print('orig image: ', orig_image_path)
-        print('h_crop, w_crop are %d, %d' % (h_crop, w_crop))
-        print('h_orig, w_orig are %d, %d' % (h_orig, w_orig))
-
-        if(h_crop != h_orig) or (w_crop != w_orig):
-            problematic_images_paths.append(crop_image_path)
-
-    print('The number of problematic images is: ', len(problematic_images_paths))
+def get_filename_from_path(filepath):
+    path, filename = os.path.split(filepath)
+    filename = os.path.splitext(filename)[0]
+    return filename
 
 
-
-def get_right_original_images(root_directories, segmentation_directories):
-    right_original_image_paths = []
-    nonempty_segmented_directories = []
-
-    empty_directories = get_empty_directories(root_directories)
-    nonempty_original_directories = [x for x in root_directories if x not in empty_directories]
-
-    for nonempty_original_directory in nonempty_original_directories:
-        nonempty_segmented_directory = os.path.join(nonempty_original_directory, 'PNG')
-        nonempty_segmented_directories.append(nonempty_segmented_directory)
-
-    # print('*********length of right original directories: ', len(nonempty_original_directories))
-    # print('*********length of right segmented directories: ', len(nonempty_segmented_directories))
-
-    for root_directory, segmentation_directory in zip(nonempty_original_directories, nonempty_segmented_directories):
-        original_image_names = get_image_names(root_directory)
-        segmented_image_names = get_image_names(segmentation_directory)
-
-        print('*********original images: ', original_image_names)
-        print('*********segmented images: ', segmented_image_names)
-
-        union_image_names = list(set(original_image_names).intersection(set(segmented_image_names)))
-        print('*********union images: ', union_image_names)
-
-        original_image_paths = get_image_paths(root_directory)
-        segmented_image_paths = get_image_paths(segmentation_directory)
-
-        for image_name in union_image_names:
-            original_image_path = ''
-            segmented_image_path = ''
-
-            for path in original_image_paths:
-                if path.find(image_name) >= 0:
-                    original_image_path = path
-
-            for path in segmented_image_paths:
-                if path.find(image_name) >= 0:
-                    segmented_image_path = path
-
-            print(original_image_path)
-            print(segmented_image_path)
-
-            original_image = cv2.imread(original_image_path)
-            segmented_image = cv2.imread(segmented_image_path)
-
-            (original_height, original_width) = original_image.shape[:2]
-            (segmented_height, segmented_width) = segmented_image.shape[:2]
-
-            print('original resolution: %d, %d' % (original_height, original_width))
-            print('segmented resolution: %d, %d' % (segmented_height, segmented_width))
-
-            if (original_height == segmented_height) and (original_width == segmented_width):
-                right_original_image_paths.append(original_image_path)
-                print('right image: ', original_image_path)
-
-    print('The number of right images is: ', len(right_original_image_paths))
+def begin_with_dot(path):
+    split_path = path.split('/')
+    if split_path[-1].startswith('._'):
+        # print(split_path[-1])
+        return True
+    return False
 
 
+def rotate_image(image, angle):
+    """
+    Rotates an OpenCV 2 / NumPy image about it's centre by the given angle
+    (in degrees). The returned image will be large enough to hold the entire
+    new image, with a black background
+    """
 
-def get_missing_segmentation_images(root_directories, segmentation_directories):
-    missing_segmentation_original_images = []
+    # Get the image size
+    # No that's not an error - NumPy stores image matricies backwards
+    image_size = (image.shape[1], image.shape[0])
+    image_center = tuple(np.array(image_size) / 2)
 
-    for root_directory, segmentation_directory in zip(root_directories, segmentation_directories):
-        # print('root directory: ', root_directory)
-        # print('segmentation directory: ', segmentation_directory)
-        original_images = get_image_names(root_directory)
-        segmented_images = get_image_names(segmentation_directory)
-        # print('Original images: ', original_images)
-        # print('Segmented images: ', segmented_images)
+    # Convert the OpenCV 3x2 rotation matrix to 3x3
+    rot_mat = np.vstack(
+        [cv2.getRotationMatrix2D(image_center, angle, 1.0), [0, 0, 1]]
+    )
 
-        missing_segmentation_original_image_names = list(set(original_images).difference(set(segmented_images)))
-        if len(missing_segmentation_original_image_names) > 0:
-            # print('The directory that have the missing segmented images is: ', root_directory)
-            # print('The original images that missing segmented images are: ', missing_segmentation_original_image_names)
-            for image_name in missing_segmentation_original_image_names:
-                image_name += '.JPG'
-                image_path = os.path.join(root_directory, image_name)
-                missing_segmentation_original_images.append(image_path)
+    rot_mat_notranslate = np.matrix(rot_mat[0:2, 0:2])
 
-    return missing_segmentation_original_images
+    # Shorthand for below calcs
+    image_w2 = image_size[0] * 0.5
+    image_h2 = image_size[1] * 0.5
+
+    # Obtain the rotated coordinates of the image corners
+    rotated_coords = [
+        (np.array([-image_w2,  image_h2]) * rot_mat_notranslate).A[0],
+        (np.array([ image_w2,  image_h2]) * rot_mat_notranslate).A[0],
+        (np.array([-image_w2, -image_h2]) * rot_mat_notranslate).A[0],
+        (np.array([ image_w2, -image_h2]) * rot_mat_notranslate).A[0]
+    ]
+
+    # Find the size of the new image
+    x_coords = [pt[0] for pt in rotated_coords]
+    x_pos = [x for x in x_coords if x > 0]
+    x_neg = [x for x in x_coords if x < 0]
+
+    y_coords = [pt[1] for pt in rotated_coords]
+    y_pos = [y for y in y_coords if y > 0]
+    y_neg = [y for y in y_coords if y < 0]
+
+    right_bound = max(x_pos)
+    left_bound = min(x_neg)
+    top_bound = max(y_pos)
+    bot_bound = min(y_neg)
+
+    new_w = int(abs(right_bound - left_bound))
+    new_h = int(abs(top_bound - bot_bound))
+
+    # We require a translation matrix to keep the image centred
+    trans_mat = np.matrix([
+        [1, 0, int(new_w * 0.5 - image_w2)],
+        [0, 1, int(new_h * 0.5 - image_h2)],
+        [0, 0, 1]
+    ])
+
+    # Compute the tranform for the combined rotation and translation
+    affine_mat = (np.matrix(trans_mat) * np.matrix(rot_mat))[0:2, :]
+
+    # Apply the transform
+    result = cv2.warpAffine(
+        image,
+        affine_mat,
+        (new_w, new_h),
+        flags=cv2.INTER_LINEAR
+    )
+
+    return result
 
 
-def get_empty_directories(directories):
-    empty_directories = []
+def largest_rotated_rect(w, h, angle):
+    """
+    Given a rectangle of size wxh that has been rotated by 'angle' (in
+    radians), computes the width and height of the largest possible
+    axis-aligned rectangle within the rotated rectangle.
 
-    for directory in directories:
-        if len(get_image_paths(directory)) == 0:
-            empty_directories.append(directory)
-        # print('Processing directory: ', directory)
-        # print('It has %d images' % len(get_image_paths(directory)))
+    Original JS code by 'Andri' and Magnus Hoff from Stack Overflow
 
-    # print('The number of empty directories is: ', len(empty_directories))
-    # print('They are: ', empty_directories)
+    Converted to Python by Aaron Snoswell
+    """
 
-    return empty_directories
+    quadrant = int(math.floor(angle / (math.pi / 2))) & 3
+    sign_alpha = angle if ((quadrant & 1) == 0) else math.pi - angle
+    alpha = (sign_alpha % math.pi + math.pi) % math.pi
+
+    bb_w = w * math.cos(alpha) + h * math.sin(alpha)
+    bb_h = w * math.sin(alpha) + h * math.cos(alpha)
+
+    gamma = math.atan2(bb_w, bb_w) if (w < h) else math.atan2(bb_w, bb_w)
+
+    delta = math.pi - alpha - gamma
+
+    length = h if (w < h) else w
+
+    d = length * math.cos(alpha)
+    a = d * math.sin(alpha) / math.sin(delta)
+
+    y = a * math.cos(gamma)
+    x = y * math.tan(gamma)
+
+    return (
+        bb_w - 2 * x,
+        bb_h - 2 * y
+    )
 
 
-def get_problematic_directories_images(root_directories, segmentation_directories):
-    empty_directories = get_empty_directories(root_directories)
-    missing_segmentation_original_images = get_missing_segmentation_images(root_directories, segmentation_directories)
+def crop_around_center(image, width, height):
+    """
+    Given a NumPy / OpenCV 2 image, crops it to the given width and height,
+    around it's centre point
+    """
 
-    print('***********empty_directories: ', empty_directories)
-    print('***********missing_segmentation_original_images: ', missing_segmentation_original_images)
+    image_size = (image.shape[1], image.shape[0])
+    image_center = (int(image_size[0] * 0.5), int(image_size[1] * 0.5))
+
+    if(width > image_size[0]):
+        width = image_size[0]
+
+    if(height > image_size[1]):
+        height = image_size[1]
+
+    x1 = int(image_center[0] - width * 0.5)
+    x2 = int(image_center[0] + width * 0.5)
+    y1 = int(image_center[1] - height * 0.5)
+    y2 = int(image_center[1] + height * 0.5)
+
+    return image[y1:y2, x1:x2]
+
+
+def get_rotation_image(img_path, rotation_angle):
+    image = cv2.imread(img_path)
+    image_height, image_width = image.shape[0:2]
+
+    image_rotated = rotate_image(image, rotation_angle)
+    image_rotated_cropped = crop_around_center(
+        image_rotated,
+        *largest_rotated_rect(
+            image_width,
+            image_height,
+            math.radians(rotation_angle)
+        )
+    )
+
+    return image_rotated_cropped
+
+
+def get_fin_boundary_image(img_path):
+    # Read the image
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+
+    # Using Otsu's thresholding to get the threshold which can be used for the first removal of noise
+    gray_orig_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    threshold_value, thresholded_img = cv2.threshold(gray_orig_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    print('Threshold Value: ', threshold_value)
+
+    # The first removal of noise using threshold value
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            if img[i][j][3] > threshold_value:
+                img[i][j][3] = 255
+                img[i][j][0] = 255
+                img[i][j][1] = 255
+                img[i][j][2] = 255
+            else:
+                img[i][j][3] = 255
+                img[i][j][0] = 0
+                img[i][j][1] = 0
+                img[i][j][2] = 0
+
+    # The second removal of noise (keep the biggest contour of the image)
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) #convert the processed image to gray scale image
+    (height, width) = gray_img.shape[:2]
+    fin_img = np.zeros((height, width, 4), np.uint8) # initialise the fin_img as a transparent image
+    im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    largest_area = 0
+    largest_area_index = 0
+    for i in range(len(contours)): # find the largest contour in the image
+        contour_area = cv2.contourArea(contours[i])
+        if contour_area > largest_area:
+            largest_area = contour_area
+            largest_area_index = i
+    cnt = contours[largest_area_index]
+    cv2.drawContours(fin_img, [cnt], -1, (255, 255, 255), -1) # draw the extracted fin on the transparent image
+    for i in range(fin_img.shape[0]):
+        for j in range(fin_img.shape[1]):
+            # if the pixel is white (fin is coloured by white), set the alpha channel of this pixel to 255
+            if fin_img[i][j][0] == 255 and fin_img[i][j][1] == 255 and fin_img[i][j][2] == 255:
+                fin_img[i][j][3] = 255
+                fin_img[i][j][0] = 0
+                fin_img[i][j][1] = 0
+                fin_img[i][j][2] = 0
+
+    # Contour extraction using morphological operation
+    element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # constructs a 3 x 3 element
+    dilate = cv2.dilate(fin_img, element, iterations=1)
+    erode = cv2.erode(fin_img, element)
+    result = cv2.absdiff(dilate, erode) # subtracts eroded image from dilated image to get the boundary
+
+    # Covert the transparent pixel to white pixel
+    for i in range(result.shape[0]):
+        for j in range(result.shape[1]):
+            if result[i][j][3] == 0:
+                result[i][j][3] = 255
+                result[i][j][0] = 255
+                result[i][j][1] = 255
+                result[i][j][2] = 255
+
+    # Return the result (fin-contour image)
+    return result
 
 
 def get_image_names(dir_path):
@@ -174,13 +261,12 @@ def get_image_paths(dir_path):
     return paths
 
 
-def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
+def get_fin_boundary_from_dir(input_dir_path, boundary_save_path):
     '''
     Saves the overlay images and images of extracted boundary to the target path. The overlay image is the overlay the
     extracted boundary on the original input image.
     :param input_dir_path: The path to input images
     :param boundary_save_path: The path to save the images of extracted boundary
-    :param overlay_save_path: The path to save the overlay images
     :return: None
     '''
     input_image_paths = get_image_paths(input_dir_path)
@@ -188,67 +274,11 @@ def get_boundary_overlay(input_dir_path, boundary_save_path, overlay_save_path):
     for input_path in input_image_paths:
         print('********Processing boundary: ', input_path)
 
-        # Converts the non-transparent pixel to black
-        original_image = np.array(Image.open(input_path))
-        image = np.array(Image.open(input_path))
 
-        for i in range(image.shape[0]):
-            for j in range(image.shape[1]):
-                if image[i][j][3] > 0:
-                    image[i][j][0] = 0
-                    image[i][j][1] = 0
-                    image[i][j][2] = 0
-
-
-        # constructs a 3 x 3 element
-        element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        dilate = cv2.dilate(image, element, iterations=2)
-        erode = cv2.erode(image, element)
-
-        # subtracts eroded image from dilated image to get the boundary
-        result = cv2.absdiff(dilate, erode)
-
-        # binarise grayscale image
-        retval, result = cv2.threshold(result, 40, 255, cv2.THRESH_BINARY)
-
-        # reverses colour
-        # result = cv2.bitwise_not(result)
-
-        result_black = result.copy()
-        '''
-        for i in range(result_black.shape[0]):
-            for j in range(result_black.shape[1]):
-                if result_black[i][j][3] == 0:
-                    result_black[i][j][3] = 255
-                    result_black[i][j][0] = 0
-                    result_black[i][j][1] = 0
-                    result_black[i][j][2] = 0
-
-        for i in range(result_black.shape[0]):
-            for j in range(result_black.shape[1]):
-                if (result_black[i][j][0] != 0) or (result_black[i][j][1] != 0) or (result_black[i][j][2] != 0):
-                    result_black[i][j][0] = 255
-                    result_black[i][j][1] = 255
-                    result_black[i][j][2] = 255
-         '''
-
-        for i in range(result_black.shape[0]):
-            for j in range(result_black.shape[1]):
-                if result_black[i][j][3] == 0:
-                    result_black[i][j][3] = 255
-                    result_black[i][j][0] = 0
-                    result_black[i][j][1] = 0
-                    result_black[i][j][2] = 0
-                elif (result_black[i][j][3] != 0) and ((result_black[i][j][0] != 0) or (result_black[i][j][1] != 0) or (result_black[i][j][2] != 0)):
-                    result_black[i][j][0] = 255
-                    result_black[i][j][1] = 255
-                    result_black[i][j][2] = 255
-
+        result = get_fin_boundary_image(input_path)
         path, filename = os.path.split(input_path)
         output_path = os.path.join(boundary_save_path, filename)
-        cv2.imwrite(output_path, result_black)
-
-        # get_overlay_image(original_image, result, overlay_save_path, filename)
+        cv2.imwrite(output_path, result)
 
 
 def get_overlay_image(image1, image2, overlay_save_path, filename):
@@ -261,36 +291,47 @@ def get_overlay_image(image1, image2, overlay_save_path, filename):
     :return: None
     '''
     alpha = 0.4
-    image2 = cv2.bitwise_not(image2)
-    cv2.addWeighted(image2, alpha, image1, 1, 0, image1)
-    # cv2.imshow('overlay', image1)
-    # cv2.waitKey(0)
+    # image2 = cv2.bitwise_not(image2)
+    overlay = image1
+    output = image2
+    cv2.addWeighted(overlay, alpha, output, 1, 0, output)
     output_path = os.path.join(overlay_save_path, filename)
     print('********Processing overlay: ', output_path)
-    cv2.imwrite(output_path, image1)
+    cv2.imwrite(output_path, output)
+
+
+def overlay_edge_images_on_orignal_images(original_images_path, edge_images_path):
+    overlay_images_save_path = os.path.join(original_images_path, 'overlay')
+    if not os.path.exists(overlay_images_save_path):
+        os.makedirs(overlay_images_save_path)
+
+    edge_image_path_list = get_image_paths(edge_images_path)
+    original_image_path_list = get_image_paths(original_images_path)
+
+    for edge_image_path in edge_image_path_list:
+        image_name = get_filename_from_path(edge_image_path)
+        corresponding_original_image_path = ''
+
+        for original_image_path in original_image_path_list:
+            original_image_name = get_filename_from_path(original_image_path)
+            if original_image_name == image_name:
+                corresponding_original_image_path = original_image_path
+
+        edge_image = cv2.imread(edge_image_path)
+        original_image = cv2.imread(corresponding_original_image_path)
+
+        overlay_image_filename_with_ext = image_name + '.png'
+
+        get_overlay_image(edge_image, original_image, overlay_images_save_path, overlay_image_filename_with_ext)
+        # get_overlay_image(original_image, edge_image, overlay_images_save_path, overlay_image_filename_with_ext)
 
 
 def get_ground_truth(root_path):
-    # for directory in directories:
-    #     input_dir_path = os.path.join(root_path, 'augmentation')
-
     boundary_save_path = os.path.join(root_path, 'gt_boundary')
     if not os.path.exists(boundary_save_path):
         os.makedirs(boundary_save_path)
 
-    overlay_save_path = os.path.join(root_path, 'gt_overlay')
-    if not os.path.exists(overlay_save_path):
-        os.makedirs(overlay_save_path)
-
-    get_boundary_overlay(root_path, boundary_save_path, overlay_save_path)
-
-
-def begin_with_dot(path):
-    split_path = path.split('/')
-    if split_path[-1].startswith('._'):
-        # print(split_path[-1])
-        return True
-    return False
+    get_fin_boundary_from_dir(root_path, boundary_save_path)
 
 
 def get_image_paths(dir_path):
@@ -304,42 +345,6 @@ def get_image_paths(dir_path):
     return new_paths
 
 
-def get_list_from_multilevelDir(input_image_path):
-    # root_directory = '../../data/Final_Database'
-    root_directory = input_image_path
-
-    folder_names = []
-    sub_directories = []
-    image_paths = []
-    first_level_subdirectories = []
-
-    for root, dirs, files in os.walk(root_directory):
-        if root == root_directory:
-            folder_names = dirs
-        # print('****root****: ', root)
-        # print('****dirs****: ', dirs)
-        # print('****files****: ', files)
-
-    # print(folder_names)
-    # print(len(folder_names))
-    for folder_name in folder_names:
-        path = os.path.join(root_directory, folder_name)
-        # path = os.path.join(path, '/PNG')
-        first_level_subdirectories.append(path)
-        path = path + '/PNG'
-        sub_directories.append(path)
-
-    # print(sub_directories)
-
-    for directory in sub_directories:
-        image_paths.extend(get_image_paths(directory))
-
-    # print('*********************image paths**********************')
-    # print(image_paths)
-
-    return first_level_subdirectories, sub_directories, image_paths
-
-
 def output_lst_file_from_list(image_paths, output_image_lst_file_path):
     # list_path = '../../data/segmentation_fin.lst'
     list_path = output_image_lst_file_path
@@ -347,50 +352,6 @@ def output_lst_file_from_list(image_paths, output_image_lst_file_path):
     for path in image_paths:
         npath = path[path.find('Final_Database'):]
         list_file.write("%s\n" % npath)
-
-
-def data_augmentation_using_Keras(directories):
-    rotation_range = 30
-    zoom_range = 0.5
-
-    datagen = ImageDataGenerator(
-        rotation_range=rotation_range)
-
-    for directory in directories:
-        images_list = get_image_paths(directory)
-
-
-        augmented_image_save_dir = os.path.join(directory, 'augmentation')
-        print('save augmented image: ', augmented_image_save_dir)
-        if not os.path.exists(augmented_image_save_dir):
-            os.makedirs(augmented_image_save_dir)
-
-        for image in images_list:
-            img = load_img(image)  # this is a PIL image, please replace to your own file path
-            x = img_to_array(img)  # this is a Numpy array with shape (3, 150, 150)
-            x = x.reshape((1,) + x.shape)  # this is a Numpy array with shape (1, 3, 150, 150)
-
-            # the .flow() command below generates batches of randomly transformed images
-            # and saves the results to the `preview/` directory
-
-            i = 0
-            for batch in datagen.flow(x,
-                                      batch_size=1,
-                                      save_to_dir=augmented_image_save_dir,
-                                      save_prefix='test',
-                                      save_format='png'):
-                i += 1
-
-                if i > 20:
-                    break  # otherwise the generator would loop indefinitely
-
-
-def data_augmentation_using_Augmentor(directories):
-    for directory in directories:
-        p = Augmentor.Pipeline(directory)
-        p.rotate(probability=1, max_left_rotation=10, max_right_rotation=10)
-        p.sample(10)
-
 
 
 def data_augmentation(root_path):
@@ -403,20 +364,12 @@ def data_augmentation(root_path):
         os.makedirs(augmented_image_save_dir)
 
     for image in images_list:
-        for rotation_angle in range(0, 40, 10):
-            # load the image and show it
-            img = cv2.imread(image, cv2.IMREAD_UNCHANGED)
-
-            # grab the dimensions of the image and calculate the center of the image
-            (h, w) = img.shape[:2]
-            center = (w / 2, h / 2)
-
-            # rotate the image by 180 degrees
-            M = cv2.getRotationMatrix2D(center, rotation_angle, 1.0)
-            rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR)
+        print('****************processing augmentation of image: ', image)
+        for rotation_angle in range(-10, 20, 10):
+            rotated = get_rotation_image(image, rotation_angle)
 
             # resize
-            dim_0_5 = (int(0.5 * w), int(0.5 * h))
+            dim_0_5 = (int(0.5 * rotated.shape[1]), int(0.5 * rotated.shape[0]))
             resized_0_5 = cv2.resize(rotated, dim_0_5, interpolation=cv2.INTER_AREA)
             dim_1_5 = (int(1.5 * rotated.shape[1]), int(rotated.shape[0] * 1.5))
             resized_1_5 = cv2.resize(rotated, dim_1_5, interpolation=cv2.INTER_AREA)
@@ -424,14 +377,9 @@ def data_augmentation(root_path):
             path, filename = os.path.split(image)
             filename = os.path.splitext(filename)[0]
 
-
             rotated_image_name = filename + '_rotation' + `rotation_angle` + '.png'
             rotated_image_name_0_5 = filename + '_rotation' + `rotation_angle` + '_zoom0_5' + '.png'
             rotated_image_name_1_5 = filename + '_rotation' + `rotation_angle` + '_zoom1_5' + '.png'
-
-            print('**************saving original: ', rotated_image_name)
-            print('**************saving zoom 0.5: ', rotated_image_name_0_5)
-            print('**************saving zoom 1.5: ', rotated_image_name_1_5)
 
             rotated_image_save_path = os.path.join(augmented_image_save_dir, rotated_image_name)
             rotated_image_save_path_0_5 = os.path.join(augmented_image_save_dir, rotated_image_name_0_5)
@@ -441,49 +389,13 @@ def data_augmentation(root_path):
             cv2.imwrite(rotated_image_save_path_0_5, resized_0_5)
             cv2.imwrite(rotated_image_save_path_1_5, resized_1_5)
 
-        for rotation_angle in range(-10, -40, -10):
-            # load the image and show it
-            img = cv2.imread(image, cv2.IMREAD_UNCHANGED)
 
-            # grab the dimensions of the image and calculate the center of the image
-            (h, w) = img.shape[:2]
-            center = (w / 2, h / 2)
-
-            # rotate the image by 180 degrees
-            M = cv2.getRotationMatrix2D(center, rotation_angle, 1.0)
-            rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR)
-
-            # resize
-            dim_0_5 = (int(0.5 * w), int(0.5 * h))
-            resized_0_5 = cv2.resize(rotated, dim_0_5, interpolation=cv2.INTER_AREA)
-            dim_1_5 = (int(1.5 * rotated.shape[1]), int(rotated.shape[0] * 1.5))
-            resized_1_5 = cv2.resize(rotated, dim_1_5, interpolation=cv2.INTER_AREA)
-
-            path, filename = os.path.split(image)
-            filename = os.path.splitext(filename)[0]
-
-
-            rotated_image_name = filename + '_rotation' + `rotation_angle` + '.png'
-            rotated_image_name_0_5 = filename + '_rotation' + `rotation_angle` + '_zoom0_5' + '.png'
-            rotated_image_name_1_5 = filename + '_rotation' + `rotation_angle` + '_zoom1_5' + '.png'
-
-            print('**************saving original: ', rotated_image_name)
-            print('**************saving zoom 0.5: ', rotated_image_name_0_5)
-            print('**************saving zoom 1.5: ', rotated_image_name_1_5)
-
-            rotated_image_save_path = os.path.join(augmented_image_save_dir, rotated_image_name)
-            rotated_image_save_path_0_5 = os.path.join(augmented_image_save_dir, rotated_image_name_0_5)
-            rotated_image_save_path_1_5 = os.path.join(augmented_image_save_dir, rotated_image_name_1_5)
-
-            cv2.imwrite(rotated_image_save_path, rotated)
-            cv2.imwrite(rotated_image_save_path_0_5, resized_0_5)
-            cv2.imwrite(rotated_image_save_path_1_5, resized_1_5)
 
 
 def parse_args(argv):
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('cmd', choices=['get_lst_file_from_dir', 'get_trainpair_lst_file', 'data_augmentation', 'get_ground_truth', 'get_problematic_directories', 'get_right_original_images'],
+    parser.add_argument('cmd', choices=['get_lst_file_from_dir', 'get_trainpair_lst_file', 'data_augmentation', 'get_ground_truth', 'test'],
                         help='The command to run')
     parser.add_argument('--input-image-path', metavar='Path',
                         help='The path to the directory of input images (default: None)')
@@ -496,8 +408,6 @@ def parse_args(argv):
                              '(original images and corresponding ground truth) (default: None)')
     parser.add_argument('--output-augmented-images-path', metavar='Path',
                         help='The path to save the output augmented images')
-    # parser.add_argument('--get-problematic-directories', metava='Path',
-    #                     help='The path to root directory which includes may sub-directories that have the original fin images')
     return parser.parse_args(argv)
 
 
@@ -505,11 +415,9 @@ def main(argv):
     args = parse_args(argv)
     cmd = args.cmd
     input_image_path = args.input_image_path
-    input_ground_truth_path = args.input_ground_truth_path
     output_image_lst_file_path = args.output_image_lst_file_path
     output_trainpair_lst_file_path = args.output_trainpair_lst_file_path
     output_augmented_images_path = args.output_augmented_images_path
-    # first_level_subdirectories, sub_directories, image_paths = get_list_from_multilevelDir(input_image_path)
 
     if cmd == 'get_lst_file_from_dir':
         # Outputs a lst file which contains the paths of every images in the directory input_image_path
@@ -520,16 +428,13 @@ def main(argv):
     elif cmd == 'data_augmentation':
         print('data_augmentation')
         data_augmentation(input_image_path)
-        # data_augmentation_using_Keras(sub_directories)
-        # data_augmentation_using_Augmentor(sub_directories)
+    elif cmd == 'data_augmentation_original_images':
+        data_augmentation_orig_images(input_image_path)
     elif cmd == 'get_ground_truth':
         get_ground_truth(input_image_path)
-    elif cmd == 'get_problematic_directories':
-        # get_problematic_directories_images(first_level_subdirectories, sub_directories)
-        check_orig_crop_resolution()
-    elif cmd == 'get_right_original_images':
-        get_right_original_images(first_level_subdirectories, sub_directories)
-
+    elif cmd == 'test':
+        # get_rotation_image('../../data/test_rotation/0006_HG_120601_215_E3_LH_rotation0.png', -10)
+        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig', '../../data/new_dataset_test/crop/gt_boundary')
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -29,9 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install ipykernel \
     && python3 -m ipykernel install --user \
     && pip2 install -U --pre pip setuptools wheel \
-    && pip2 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor\
+    && pip2 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor imutils\
     && pip3 install -U --pre pip setuptools wheel \
-    && pip3 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor\
+    && pip3 install -U --pre numpy scipy matplotlib scikit-learn scikit-image Pillow future tqdm Augmentor imutils\
     && pip2 install -U --pre tensorflow \
     && pip3 install -U --pre tensorflow \
     && pip2 install -U --pre keras \
