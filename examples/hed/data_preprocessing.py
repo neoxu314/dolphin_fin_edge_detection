@@ -170,7 +170,7 @@ def get_rotation_image(img_path, rotation_angle):
             math.radians(rotation_angle)
         )
     )
-
+    # Returns the rotated and cropped image
     return image_rotated_cropped
 
 
@@ -218,11 +218,12 @@ def get_fin_boundary_image(img_path):
         for i in range(fin_img.shape[0]):
             for j in range(fin_img.shape[1]):
                 # if the pixel is white (fin is coloured by white), set the alpha channel of this pixel to 255
+                # Also, set the color of the fin area to red (BGR)
                 if fin_img[i][j][0] == 255 and fin_img[i][j][1] == 255 and fin_img[i][j][2] == 255:
                     fin_img[i][j][3] = 255
                     fin_img[i][j][0] = 0
                     fin_img[i][j][1] = 0
-                    fin_img[i][j][2] = 0
+                    fin_img[i][j][2] = 255
 
         # Contour extraction using morphological operation
         element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # constructs a 3 x 3 element
@@ -310,7 +311,7 @@ def get_overlay_image(image1, image2, overlay_save_path, filename):
     :param filename: The filename of the original input images
     :return: None
     '''
-    alpha = 0.3
+    alpha = 0.2
     # image2 = cv2.bitwise_not(image2)
     overlay = image1
     output = image2
@@ -473,9 +474,12 @@ def main(argv):
         data_augmentation(input_image_path)
     elif cmd == 'get_ground_truth':
         get_ground_truth(input_image_path)
+    elif cmd == 'overlay':
+        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig/augmentation',
+                                              '../../data/new_dataset_test/crop/gt_boundary/augmentation')
     elif cmd == 'test':
         # get_rotation_image('../../data/test_rotation/0006_HG_120601_215_E3_LH_rotation0.png', -10)
-        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig', '../../data/new_dataset_test/crop/gt_boundary')
+        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig/augmentation', '../../data/new_dataset_test/crop/gt_boundary/augmentation')
         # test()
 
 if __name__ == '__main__':
