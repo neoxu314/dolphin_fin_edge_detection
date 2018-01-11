@@ -8,9 +8,6 @@ import os
 import re
 import numpy as np
 import math
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 
 def test():
@@ -313,7 +310,7 @@ def get_overlay_image(image1, image2, overlay_save_path, filename):
     :param filename: The filename of the original input images
     :return: None
     '''
-    alpha = 0.4
+    alpha = 0.3
     # image2 = cv2.bitwise_not(image2)
     overlay = image1
     output = image2
@@ -380,7 +377,6 @@ def output_problematic_image_lst_file_from_list(image_paths, output_image_lst_fi
 def data_augmentation(root_path):
     # for directory in directories:
     images_list = get_image_paths(root_path)
-
     augmented_image_save_dir = os.path.join(root_path, 'augmentation')
     print('save augmented image: ', augmented_image_save_dir)
     if not os.path.exists(augmented_image_save_dir):
@@ -389,30 +385,54 @@ def data_augmentation(root_path):
     for image in images_list:
         print('****************processing augmentation of image: ', image)
         for rotation_angle in range(-10, 20, 10):
-            rotated = get_rotation_image(image, rotation_angle)
+            # Produces the augmented images
+            rotated_image = get_rotation_image(image, rotation_angle)
+            # Resizes the rotated images (scale 0.5 and 1.5)
+            dim_0_5 = (int(0.5 * rotated_image.shape[1]), int(0.5 * rotated_image.shape[0]))
+            rotated_resized0_5_image = cv2.resize(rotated_image, dim_0_5, interpolation=cv2.INTER_AREA)
+            dim_1_5 = (int(1.5 * rotated_image.shape[1]), int(rotated_image.shape[0] * 1.5))
+            rotated_resized1_5_image = cv2.resize(rotated_image, dim_1_5, interpolation=cv2.INTER_AREA)
+            # Flips rotated and resized images
+            rotated_horizontally_flipped_image = cv2.flip(rotated_image, 0)
+            rotated_vertically_flipped_image = cv2.flip(rotated_image, 1)
+            rotated_resized0_5_horizontally_flipped_image = cv2.flip(rotated_resized0_5_image, 0)
+            rotated_resized0_5_vertically_flipped_image= cv2.flip(rotated_resized0_5_image, 1)
+            rotated_resized1_5_horizontally_flipped_image = cv2.flip(rotated_resized1_5_image, 0)
+            rotated_resized1_5_vertically_flipped_image = cv2.flip(rotated_resized1_5_image, 1)
 
-            # resize
-            dim_0_5 = (int(0.5 * rotated.shape[1]), int(0.5 * rotated.shape[0]))
-            resized_0_5 = cv2.resize(rotated, dim_0_5, interpolation=cv2.INTER_AREA)
-            dim_1_5 = (int(1.5 * rotated.shape[1]), int(rotated.shape[0] * 1.5))
-            resized_1_5 = cv2.resize(rotated, dim_1_5, interpolation=cv2.INTER_AREA)
-
+            # Saves augmented images
             path, filename = os.path.split(image)
             filename = os.path.splitext(filename)[0]
-
-            rotated_image_name = filename + '_rotation' + `rotation_angle` + '.png'
-            rotated_image_name_0_5 = filename + '_rotation' + `rotation_angle` + '_zoom0_5' + '.png'
-            rotated_image_name_1_5 = filename + '_rotation' + `rotation_angle` + '_zoom1_5' + '.png'
-
+            # Generates the filename of the augmented images
+            rotated_image_name = filename + '_rotated' + `rotation_angle` + '.png'
+            rotated_resized0_5_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '.png'
+            rotated_resized1_5_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '.png'
+            rotated_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + 'horizontally_flipped' + '.png'
+            rotated_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + 'vertically_flipped' + '.png'
+            rotated_resized0_5_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '_horizontally_flipped' + '.png'
+            rotated_resized0_5_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '_horizontally_flipped' + '.png'
+            rotated_resized1_5_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '_horizontally_flipped' + '.png'
+            rotated_resized1_5_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '_horizontally_flipped' + '.png'
+            # Generates the path of the augmented images
             rotated_image_save_path = os.path.join(augmented_image_save_dir, rotated_image_name)
-            rotated_image_save_path_0_5 = os.path.join(augmented_image_save_dir, rotated_image_name_0_5)
-            rotated_image_save_path_1_5 = os.path.join(augmented_image_save_dir, rotated_image_name_1_5)
+            rotated_resized0_5_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_image_name)
+            rotated_resized1_5_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_image_name)
+            rotated_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_horizontally_flipped_image_name)
+            rotated_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_vertically_flipped_image_name)
+            rotated_resized0_5_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_horizontally_flipped_image_name)
+            rotated_resized0_5_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_vertically_flipped_image_name)
+            rotated_resized1_5_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_horizontally_flipped_image_name)
+            rotated_resized1_5_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_vertically_flipped_image_name)
 
-            cv2.imwrite(rotated_image_save_path, rotated)
-            cv2.imwrite(rotated_image_save_path_0_5, resized_0_5)
-            cv2.imwrite(rotated_image_save_path_1_5, resized_1_5)
-
-
+            cv2.imwrite(rotated_image_save_path, rotated_image)
+            cv2.imwrite(rotated_resized0_5_image_save_path, rotated_resized0_5_image)
+            cv2.imwrite(rotated_resized1_5_image_save_path, rotated_resized1_5_image)
+            cv2.imwrite(rotated_horizontally_flipped_image_save_path, rotated_horizontally_flipped_image)
+            cv2.imwrite(rotated_vertically_flipped_image_save_path, rotated_vertically_flipped_image)
+            cv2.imwrite(rotated_resized0_5_horizontally_flipped_image_save_path, rotated_resized0_5_horizontally_flipped_image)
+            cv2.imwrite(rotated_resized0_5_vertically_flipped_image_save_path, rotated_resized0_5_vertically_flipped_image)
+            cv2.imwrite(rotated_resized1_5_horizontally_flipped_image_save_path, rotated_resized1_5_horizontally_flipped_image)
+            cv2.imwrite(rotated_resized1_5_vertically_flipped_image_save_path, rotated_resized1_5_vertically_flipped_image)
 
 
 def parse_args(argv):
@@ -451,14 +471,12 @@ def main(argv):
     elif cmd == 'data_augmentation':
         print('data_augmentation')
         data_augmentation(input_image_path)
-    elif cmd == 'data_augmentation_original_images':
-        data_augmentation_orig_images(input_image_path)
     elif cmd == 'get_ground_truth':
         get_ground_truth(input_image_path)
     elif cmd == 'test':
         # get_rotation_image('../../data/test_rotation/0006_HG_120601_215_E3_LH_rotation0.png', -10)
-        # overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig', '../../data/new_dataset_test/crop/gt_boundary')
-        test()
+        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/orig', '../../data/new_dataset_test/crop/gt_boundary')
+        # test()
 
 if __name__ == '__main__':
     main(sys.argv[1:])

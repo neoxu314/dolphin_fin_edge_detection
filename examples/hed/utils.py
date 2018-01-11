@@ -2,6 +2,9 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 from PIL import Image
 import Augmentor
 import imutils
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 
