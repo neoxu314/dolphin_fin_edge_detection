@@ -9,6 +9,8 @@ import numpy as np
 from PIL import Image
 
 
+
+
 def get_image_paths(dir_path):
     '''
     Returns a list of paths to JPG and PNG files in dir_path.
