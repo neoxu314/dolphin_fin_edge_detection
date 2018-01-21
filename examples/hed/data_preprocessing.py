@@ -17,6 +17,24 @@ import matplotlib.pyplot as plt
 import imutils
 
 
+def get_train_pair_list(path_to_original_images, path_to_edge_images, path_to_save_lst_file):
+    lst_file = open(path_to_save_lst_file, 'w')
+
+    original_image_paths_list = get_image_paths(path_to_original_images)
+    edge_image_paths_list = get_image_paths(path_to_edge_images)
+
+    is_all_right = True
+
+    for path_to_original_image, path_to_edge_image in zip(original_image_paths_list, edge_image_paths_list):
+        right_path_to_original_image = path_to_original_image[path_to_original_image.find('big'):]
+        right_path_to_edge_image = path_to_edge_image[path_to_edge_image.find('e_edge'):]
+        lst_file.write("%s %s" % (right_path_to_original_image, right_path_to_edge_image))
+
+    lst_file.close()
+
+
+
+
 
 def convert_background_to_transparency(images_path):
     image_paths_list = get_image_paths(images_path)
@@ -54,13 +72,15 @@ def affine_transform_matrix(rotation_angle, shear, sx, sy):
 
 
 def test():
-    db_path = '../../data/test/out.mat'
-    orig_img_path = '../../data/new_dataset_test/big/'
-    edge_img_path = '../../data/new_dataset_test/e_edge/'
-    right_image_path = '../../data/new_dataset_test/e_edge'
-    data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_path)
+    # db_path = '../../data/test/out.mat'
+    # orig_img_path = '../../data/new_dataset/big/'
+    # edge_img_path = '../../data/new_dataset/e_edge/'
+    # right_image_path = '../../data/new_dataset/e_edge/'
+    # data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_path)
 
     # convert_background_to_transparency('../../data/new_dataset/e_edge/')
+
+    get_train_pair_list('../../data/new_dataset/big/augmentation/', '../../data/new_dataset/e_edge/augmentation/', '../../data/new_dataset/train_pair.lst')
 
 
 def image_in_folder(image_name, path_to_image_folder):
@@ -144,6 +164,7 @@ def data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_pa
 
                 #### Generate the augmented original image ####
                 # Generate the rotated original image
+                skimage_orig_rotated_image = skimage_orig_rotated_image[:, :, ::-1]
                 orig_rotated_image = skimage.img_as_ubyte(skimage_orig_rotated_image)
                 # Resizes the rotated original images (scale 0.5 and 1.5)
                 dim_0_5 = (int(0.5 * orig_rotated_image.shape[1]), int(0.5 * orig_rotated_image.shape[0]))
@@ -840,8 +861,8 @@ def main(argv):
                                               '../../data/new_dataset/crop/gt_boundary/')
     elif cmd == 'test':
         # get_rotation_image('../../data/test_rotation/0006_HG_120601_215_E3_LH_rotation0.png', -10)
-        overlay_edge_images_on_orignal_images('../../data/new_dataset_test/big/augmentation', '../../data/new_dataset_test/e_edge/augmentation')
-        # test()
+        # overlay_edge_images_on_orignal_images('../../data/new_dataset/big/augmentation', '../../data/new_dataset/e_edge/augmentation')
+        test()
         # read_images_list_from_file('../../data/new_dataset/crop/gt_boundary/problematic_images.txt')
         # test('../../data/new_dataset/data_cleaning/', '../../data/new_dataset/orig/overlay')
         # transformation()
