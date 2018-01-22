@@ -17,6 +17,32 @@ import matplotlib.pyplot as plt
 import imutils
 
 
+def resize_width(images_path, new_width):
+    resized_image_save_dir = os.path.join(images_path, 'resized')
+    if not os.path.exists(resized_image_save_dir):
+        os.makedirs(resized_image_save_dir)
+    image_paths_list = get_image_paths(images_path)
+    for image_path in image_paths_list:
+        image = cv2.imread(image_path)
+        (h, w) =image.shape[:2]
+
+        print('*****processing image: %s, orig size: %d, %d' % (image_path, h, w))
+
+        filename = get_filename_from_path(image_path) + '.jpg'
+        new_save_path = os.path.join(resized_image_save_dir, filename)
+
+        if w > 1000:
+            new_w = new_width
+            ratio = float(new_w)/float(w)
+            new_h = int(ratio * h)
+            print('****new width and height: %d, %d ' % (new_w, new_h))
+            resized_image = cv2.resize(image, (new_w, new_h))
+            cv2.imwrite(new_save_path, resized_image)
+        else:
+            cv2.imwrite(new_save_path, image)
+
+
+
 def get_train_pair_list(path_to_original_images, path_to_edge_images, path_to_save_lst_file):
     lst_file = open(path_to_save_lst_file, 'w')
 
@@ -28,12 +54,9 @@ def get_train_pair_list(path_to_original_images, path_to_edge_images, path_to_sa
     for path_to_original_image, path_to_edge_image in zip(original_image_paths_list, edge_image_paths_list):
         right_path_to_original_image = path_to_original_image[path_to_original_image.find('big'):]
         right_path_to_edge_image = path_to_edge_image[path_to_edge_image.find('e_edge'):]
-        lst_file.write("%s %s" % (right_path_to_original_image, right_path_to_edge_image))
+        lst_file.write("%s %s\n" % (right_path_to_original_image, right_path_to_edge_image))
 
     lst_file.close()
-
-
-
 
 
 def convert_background_to_transparency(images_path):
@@ -80,7 +103,8 @@ def test():
 
     # convert_background_to_transparency('../../data/new_dataset/e_edge/')
 
-    get_train_pair_list('../../data/new_dataset/big/augmentation/', '../../data/new_dataset/e_edge/augmentation/', '../../data/new_dataset/train_pair.lst')
+    # get_train_pair_list('../../data/new_dataset/big/augmentation/', '../../data/new_dataset/e_edge/augmentation/', '../../data/new_dataset/train_pair.lst')
+    resize_width('/media/neo/92cd53f3-fc9f-4db8-b68e-faf606561e34/home/neo/PycharmProjects/hed_origin/data/new_dataset/big/augmentation', 1000)
 
 
 def image_in_folder(image_name, path_to_image_folder):
