@@ -1,4 +1,4 @@
-FROM bvlc/caffe:cpu
+FROM bvlc/caffe:gpu
 
 ARG uid=1001
 ARG group=

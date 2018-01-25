@@ -7,7 +7,96 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
+def copy_image(path_to_problematic_images_dir, path_to_images_dir):
+    problematic_image_names_list = get_image_names(path_to_problematic_images_dir)
 
+    image_paths_list = get_image_paths(path_to_images_dir)
+
+    problematic_orig_image_paths_list = []
+    problematic_crop_image_paths_list = []
+    problematic_edge_image_paths_list = []
+    problematic_overlay_image_paths_list = []
+
+    for problematic_image_name in problematic_image_names_list:
+        path_to_problematic_orig_image = '../../data/new_dataset/orig/' + problematic_image_name + '.JPG'
+        path_to_problematic_crop_image = '../../data/new_dataset/crop/' + problematic_image_name + '.png'
+        path_to_problematic_edge_image = '../../data/new_dataset/crop/gt_boundary/' + problematic_image_name + '.png'
+        path_to_problematic_overlay_image = '../../data/new_dataset/orig/overlay/' + problematic_image_name + '.png'
+
+        problematic_orig_image_paths_list.append(path_to_problematic_orig_image)
+        problematic_crop_image_paths_list.append(path_to_problematic_crop_image)
+        problematic_edge_image_paths_list.append(path_to_problematic_edge_image)
+        problematic_overlay_image_paths_list.append(path_to_problematic_overlay_image)
+
+    right_image_paths_list = [item for item in image_paths_list if item not in problematic_overlay_image_paths_list]
+
+    for right_image_path in right_image_paths_list:
+        right_image_name = get_filename_from_path(right_image_path)
+        right_image_name += '.png'
+        right_image_dst_path = os.path.join('../../data/new_dataset/e_overlay', right_image_name)
+        copyfile(right_image_path, right_image_dst_path)
+
+
+def data_augmentation(root_path):
+    # for directory in directories:
+    images_list = get_image_paths(root_path)
+    augmented_image_save_dir = os.path.join(root_path, 'augmentation')
+    print('save augmented image: ', augmented_image_save_dir)
+    if not os.path.exists(augmented_image_save_dir):
+        os.makedirs(augmented_image_save_dir)
+
+    for image in images_list:
+        print('****************processing augmentation of image: ', image)
+        for rotation_angle in range(-10, 20, 10):
+            # Produces the augmented images
+            rotated_image = get_rotation_image(image, rotation_angle)
+            # rotated_image, rotated_edge_image = rotation_transformation()
+            # Resizes the rotated images (scale 0.5 and 1.5)
+            dim_0_5 = (int(0.5 * rotated_image.shape[1]), int(0.5 * rotated_image.shape[0]))
+            rotated_resized0_5_image = cv2.resize(rotated_image, dim_0_5, interpolation=cv2.INTER_AREA)
+            dim_1_5 = (int(1.5 * rotated_image.shape[1]), int(rotated_image.shape[0] * 1.5))
+            rotated_resized1_5_image = cv2.resize(rotated_image, dim_1_5, interpolation=cv2.INTER_AREA)
+            # Flips rotated and resized images
+            rotated_horizontally_flipped_image = cv2.flip(rotated_image, 0)
+            rotated_vertically_flipped_image = cv2.flip(rotated_image, 1)
+            rotated_resized0_5_horizontally_flipped_image = cv2.flip(rotated_resized0_5_image, 0)
+            rotated_resized0_5_vertically_flipped_image= cv2.flip(rotated_resized0_5_image, 1)
+            rotated_resized1_5_horizontally_flipped_image = cv2.flip(rotated_resized1_5_image, 0)
+            rotated_resized1_5_vertically_flipped_image = cv2.flip(rotated_resized1_5_image, 1)
+
+            # Saves augmented images
+            path, filename = os.path.split(image)
+            filename = os.path.splitext(filename)[0]
+            # Generates the filename of the augmented images
+            rotated_image_name = filename + '_rotated' + `rotation_angle` + '.png'
+            rotated_resized0_5_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '.png'
+            rotated_resized1_5_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '.png'
+            rotated_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + 'horizontally_flipped' + '.png'
+            rotated_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + 'vertically_flipped' + '.png'
+            rotated_resized0_5_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '_horizontally_flipped' + '.png'
+            rotated_resized0_5_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '_horizontally_flipped' + '.png'
+            rotated_resized1_5_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '_horizontally_flipped' + '.png'
+            rotated_resized1_5_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '_horizontally_flipped' + '.png'
+            # Generates the path of the augmented images
+            rotated_image_save_path = os.path.join(augmented_image_save_dir, rotated_image_name)
+            rotated_resized0_5_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_image_name)
+            rotated_resized1_5_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_image_name)
+            rotated_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_horizontally_flipped_image_name)
+            rotated_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_vertically_flipped_image_name)
+            rotated_resized0_5_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_horizontally_flipped_image_name)
+            rotated_resized0_5_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_vertically_flipped_image_name)
+            rotated_resized1_5_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_horizontally_flipped_image_name)
+            rotated_resized1_5_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_vertically_flipped_image_name)
+
+            cv2.imwrite(rotated_image_save_path, rotated_image)
+            cv2.imwrite(rotated_resized0_5_image_save_path, rotated_resized0_5_image)
+            cv2.imwrite(rotated_resized1_5_image_save_path, rotated_resized1_5_image)
+            cv2.imwrite(rotated_horizontally_flipped_image_save_path, rotated_horizontally_flipped_image)
+            cv2.imwrite(rotated_vertically_flipped_image_save_path, rotated_vertically_flipped_image)
+            cv2.imwrite(rotated_resized0_5_horizontally_flipped_image_save_path, rotated_resized0_5_horizontally_flipped_image)
+            cv2.imwrite(rotated_resized0_5_vertically_flipped_image_save_path, rotated_resized0_5_vertically_flipped_image)
+            cv2.imwrite(rotated_resized1_5_horizontally_flipped_image_save_path, rotated_resized1_5_horizontally_flipped_image)
+            cv2.imwrite(rotated_resized1_5_vertically_flipped_image_save_path, rotated_resized1_5_vertically_flipped_image)
 
 
 def check_orig_crop_resolution():

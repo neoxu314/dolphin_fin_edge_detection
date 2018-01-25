@@ -14,14 +14,177 @@ import skimage.io
 import skimage.transform
 from numpy.linalg import inv
 import matplotlib.pyplot as plt
-import imutils
+# import imutils
 
 
-def resize_width(images_path, new_width):
+def test(images_path):
+    db_path = '../../data/new_dataset/out.mat'
+    orig_img_path = '../../data/new_dataset/big/'
+    edge_img_path = '../../data/new_dataset/e_edge/'
+    right_image_path = '../../data/new_dataset/e_edge/'
+    data_augmentation(db_path, orig_img_path, edge_img_path, right_image_path)
+
+    # convert_background_to_transparency('../../data/new_dataset/e_edge/')
+
+    # get_train_pair_list('../../data/new_dataset2/big/augmentation/', '../../data/new_dataset2/e_edge/augmentation/', '../../data/new_dataset2/train_pair.lst')
+    # get_square_test_set()
+    # get_train_pair_list('../../data/test1/square/big/', '../../data/test1/square/e_edge/', '../../data/test1/train_pair.lst')
+    # get_train_pair_list('../../data/test1/rectangle/big/', '../../data/test1/rectangle/e_edge/', '../../data/test1/train_pair.lst')
+    # resize_width(images_path)
+    # resize_width('../../data/new_dataset/e_edge/', 1000)
+    # find_the_biggest_width('../../data/new_dataset/e_edge/augmentation/')
+    # get_rectangle_test_set()
+    # gradient_resize('../../data/test1/square/big/')
+    # gradient_resize('../../data/test1/rectangle/big/')
+    # show_size_of_images('../../data/test1/square/big/resized/')
+    # show_size_of_images('../../data/test1/rectangle/big/resized/')
+    # gradient_resize(images_path)
+    # choose_n_images(1000)
+
+
+def choose_n_images(n):
+    # orig_images_path = '../../data/new_dataset/big/augmentation'
+    orig_images_path = '/media/neo/92cd53f3-fc9f-4db8-b68e-faf606561e34/home/neo/PycharmProjects/hed_origin/data/new_dataset/big/augmentation/'
+    # edge_images_path = '../../data/new_dataset/e_edge/augmentation'
+    edge_images_path = '/media/neo/92cd53f3-fc9f-4db8-b68e-faf606561e34/home/neo/PycharmProjects/hed_origin/data/new_dataset/e_edge/augmentation/'
+
+    # orig_image_dst_folder_path = '../../data/new_dataset1/big/augmentation/'
+    orig_image_dst_folder_path = '/media/neo/92cd53f3-fc9f-4db8-b68e-faf606561e34/home/neo/PycharmProjects/hed_origin/data/new_dataset1/big/augmentation/'
+    # edge_image_dst_folder_path = '../../data/new_dataset1/e_edge/augmentation/'
+    edge_image_dst_folder_path = '/media/neo/92cd53f3-fc9f-4db8-b68e-faf606561e34/home/neo/PycharmProjects/hed_origin/data/new_dataset1/e_edge/augmentation/'
+
+    orig_image_paths_list = get_image_paths(orig_images_path)
+    edge_image_paths_list = get_image_paths(edge_images_path)
+
+    i = 0
+
+    for orig_image_path, edge_image_path in zip(orig_image_paths_list, edge_image_paths_list):
+        if i > n:
+            break
+
+        orig_image_filename = get_filename_from_path(orig_image_path) + '.jpg'
+        edge_image_filename = get_filename_from_path(edge_image_path) + '.jpg'
+
+        orig_image_dst_path = os.path.join(orig_image_dst_folder_path, orig_image_filename)
+        edge_image_dst_path = os.path.join(edge_image_dst_folder_path, edge_image_filename)
+
+        copyfile(orig_image_path, orig_image_dst_path)
+        copyfile(edge_image_path, edge_image_dst_path)
+
+        i += 1
+
+
+def show_size_of_images(images_path):
+    print('*********show size***********')
+    image_paths_list = get_image_paths(images_path)
+    for image_path in image_paths_list:
+        image = cv2.imread(image_path)
+        (h, w) = image.shape[0:2]
+        print('*****processing image: %s, orig size: %d, %d' % (image_path, h, w))
+
+
+def gradient_resize(images_path):
+    resized_image_save_dir = os.path.join(images_path, 'resized')
+    if not os.path.exists(resized_image_save_dir):
+        os.makedirs(resized_image_save_dir)
+
+    image_paths_list = get_image_paths(images_path)
+    for image_path in image_paths_list:
+        filename = get_filename_from_path(image_path) + '.jpg'
+        new_save_path = os.path.join(resized_image_save_dir, filename)
+        image = cv2.imread(image_path)
+        (h, w) = image.shape[0:2]
+        max_l = w if w > h else h
+
+        print('*****processing image: %s, orig size: %d, %d' % (image_path, h, w))
+
+        # if 3563 <= max_l <= 5344:
+        #     resized_image = resize_image_by_the_longest_side(image, 1000)
+        # elif 1782 <= max_l <= 3562:
+        #     resized_image = resize_image_by_the_longest_side(image, 667)
+        # elif 891 <= max_l <= 1781:
+        #     resized_image = resize_image_by_the_longest_side(image, 444)
+        # else:
+        #     resized_image = image
+
+        resized_image = resize_image_by_the_longest_side(image, 500)
+
+        cv2.imwrite(new_save_path, resized_image)
+
+
+def resize_image_by_the_longest_side(image, expected_length_of_the_longest_side):
+    (h, w) = image.shape[0:2]
+    if w > h:
+        new_w = expected_length_of_the_longest_side
+        ratio = float(new_w) / float(w)
+        # print('ratio:', ratio)
+        new_h = int(math.ceil(ratio * h))
+        return cv2.resize(image, (new_w, new_h))
+    elif h > w:
+        new_h = expected_length_of_the_longest_side
+        ratio = float(new_h) / float(h)
+        # print('ratio:', ratio)
+        new_w = int(math.ceil(ratio * w))
+        return cv2.resize(image, (new_w, new_h))
+    else:
+        new_w = expected_length_of_the_longest_side
+        new_h = new_w
+        return cv2.resize(image, (new_w, new_h))
+
+
+def get_rectangle_test_set():
+    image_path = '../../data/test1/0161_HG_120118_073_E1_N11_rotated20_resized1_5.png'
+    path_to_saving_directory = '../../data/test1/e_edge/'
+    filename = get_filename_from_path(image_path)
+    image = cv2.imread(image_path)
+    (h, w) = image.shape[0:2]
+    # print(h, w)
+    for new_w in range(500, 2000, 100):
+        ratio = float(new_w) / float(w)
+        new_h = int(ratio * h)
+        resized_image = cv2.resize(image, (new_w, new_h))
+        save_filename = filename + '_w' + `new_w` + '.jpg'
+        cv2.imwrite(os.path.join(path_to_saving_directory, save_filename), resized_image)
+
+
+def get_square_test_set():
+    image_path = '../../data/test1/square/0361_HG_130208_1418_E3_KR_AII_rotated-30_resized1_5.png'
+    path_to_saving_directory = '../../data/test1/square/big/'
+    filename = get_filename_from_path(image_path)
+    image = cv2.imread(image_path)
+    (h, w) = image.shape[0:2]
+
+
+    for i in range(50):
+        resized_image = cv2.resize(image, (500, 500))
+        save_filename = filename + '_500' + `i` + '.jpg'
+        cv2.imwrite(os.path.join(path_to_saving_directory, save_filename), resized_image)
+
+    # for l in range(600, 5300, 200):
+    #     resized_image = cv2.resize(image, (l, l))
+    #     save_filename = filename + '_' + `l` + '.jpg'
+    #     cv2.imwrite(os.path.join(path_to_saving_directory, save_filename), resized_image)
+
+
+def find_the_biggest_width_from_image_folder(path_to_image_folder):
+    image_paths_list = get_image_paths(path_to_image_folder)
+    max_l = 0
+    for image_path in image_paths_list:
+        image = cv2.imread(image_path)
+        (h, w) = image.shape[:2]
+        if w > h and w > max_l:
+            max_l = w
+        elif h > w and h > max_l:
+            max_l = h
+    print('max_w: ', max_l)
+
+
+def resize_width(images_path):
     resized_image_save_dir = os.path.join(images_path, 'resized')
     if not os.path.exists(resized_image_save_dir):
         os.makedirs(resized_image_save_dir)
     image_paths_list = get_image_paths(images_path)
+
     for image_path in image_paths_list:
         image = cv2.imread(image_path)
         (h, w) =image.shape[:2]
@@ -31,16 +194,19 @@ def resize_width(images_path, new_width):
         filename = get_filename_from_path(image_path) + '.jpg'
         new_save_path = os.path.join(resized_image_save_dir, filename)
 
-        if w > 1000:
-            new_w = new_width
-            ratio = float(new_w)/float(w)
-            new_h = int(ratio * h)
-            print('****new width and height: %d, %d ' % (new_w, new_h))
+        if w > 600:
+            # new_w = new_width
+            # ratio = float(new_w)/float(w)
+            # new_h = int(ratio * h)
+            # print('****new width and height: %d, %d ' % (new_w, new_h))
+            # resized_image = cv2.resize(image, (new_w, new_h))
+            # cv2.imwrite(new_save_path, resized_image)
+            new_w = int(float(w) / float(6))
+            new_h = int(float(h) / float(6))
             resized_image = cv2.resize(image, (new_w, new_h))
             cv2.imwrite(new_save_path, resized_image)
         else:
             cv2.imwrite(new_save_path, image)
-
 
 
 def get_train_pair_list(path_to_original_images, path_to_edge_images, path_to_save_lst_file):
@@ -94,20 +260,7 @@ def affine_transform_matrix(rotation_angle, shear, sx, sy):
     ])
 
 
-def test():
-    # db_path = '../../data/test/out.mat'
-    # orig_img_path = '../../data/new_dataset/big/'
-    # edge_img_path = '../../data/new_dataset/e_edge/'
-    # right_image_path = '../../data/new_dataset/e_edge/'
-    # data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_path)
-
-    # convert_background_to_transparency('../../data/new_dataset/e_edge/')
-
-    # get_train_pair_list('../../data/new_dataset/big/augmentation/', '../../data/new_dataset/e_edge/augmentation/', '../../data/new_dataset/train_pair.lst')
-    resize_width('/media/neo/92cd53f3-fc9f-4db8-b68e-faf606561e34/home/neo/PycharmProjects/hed_origin/data/new_dataset/big/augmentation', 1000)
-
-
-def image_in_folder(image_name, path_to_image_folder):
+def find_image_in_folder(image_name, path_to_image_folder):
     is_found = False
 
     image_paths_list = get_image_paths(path_to_image_folder)
@@ -118,8 +271,7 @@ def image_in_folder(image_name, path_to_image_folder):
     return is_found
 
 
-
-def data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_path):
+def data_augmentation(db_path, orig_img_path, edge_img_path, right_image_path):
     '''
     Augment both orignal images and edge images
     :param db_path:
@@ -129,6 +281,10 @@ def data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_pa
     :param transformation_matrix:
     :return:
     '''
+
+    MAX_DIM = 700
+    UP_FACTOR = 1.5
+    new_max_dim = int(math.floor(MAX_DIM / UP_FACTOR))
 
     #### Create the directories of augmented images ####
     augmented_edge_image_save_dir = os.path.join(edge_img_path, 'augmentation')
@@ -151,14 +307,14 @@ def data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_pa
         original_image_filename = get_filename_from_path(original_image_name)
         edge_image_filename = get_filename_from_path(edge_image_name)
         # check if the image from db_database is a correct image
-        if image_in_folder(edge_image_name, right_image_path):
+        if find_image_in_folder(edge_image_name, right_image_path):
             print('***********Processing Image: ', edge_image_name)
             ##### Read the image using skimage ####
             origI = skimage.io.imread(os.path.join(orig_img_path, original_image_name))
             edgeI = skimage.io.imread(os.path.join(edge_img_path, edge_image_name))
 
             #### Augment original and edge image ####
-            for rotation_angle in range(-30, 40, 10):
+            for rotation_angle in range(-60, 80, 20):
                 R = affine_transform_matrix(rotation_angle, 0, 1, 1)
                 T = item['T']
                 T = T.T  # The matrix orientation of python and matlab are different
@@ -190,6 +346,11 @@ def data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_pa
                 # Generate the rotated original image
                 skimage_orig_rotated_image = skimage_orig_rotated_image[:, :, ::-1]
                 orig_rotated_image = skimage.img_as_ubyte(skimage_orig_rotated_image)
+                # Resizes the rotated original images to make sure the length of its longest side is less than MAX_DIM
+                (h ,w) = orig_rotated_image.shape[0:2]
+                image_max_dim = w if w >= h else h
+                if image_max_dim * UP_FACTOR > MAX_DIM:
+                    orig_rotated_image = resize_image_by_the_longest_side(orig_rotated_image, new_max_dim)
                 # Resizes the rotated original images (scale 0.5 and 1.5)
                 dim_0_5 = (int(0.5 * orig_rotated_image.shape[1]), int(0.5 * orig_rotated_image.shape[0]))
                 orig_rotated_resized0_5_image = cv2.resize(orig_rotated_image, dim_0_5, interpolation=cv2.INTER_AREA)
@@ -256,6 +417,11 @@ def data_augmentation_test(db_path, orig_img_path, edge_img_path, right_image_pa
                             edge_rotated_image[i][j][1] = 255
                             edge_rotated_image[i][j][2] = 255
                             edge_rotated_image[i][j][3] = 255
+                # Resizes the rotated original images to make sure the length of its longest side is less than MAX_DIM
+                (h, w) = edge_rotated_image.shape[0:2]
+                image_max_dim = w if w >= h else h
+                if image_max_dim * UP_FACTOR > MAX_DIM:
+                    edge_rotated_image = resize_image_by_the_longest_side(edge_rotated_image, new_max_dim)
                 # Resizes the rotated edge images (scale 0.5 and 1.5)
                 dim_0_5 = (int(0.5 * edge_rotated_image.shape[1]), int(0.5 * edge_rotated_image.shape[0]))
                 edge_rotated_resized0_5_image = cv2.resize(edge_rotated_image, dim_0_5, interpolation=cv2.INTER_AREA)
@@ -374,36 +540,6 @@ def rotation_transformation():
     skimage.io.imsave('../../data/test/rotated_edge.png', edgeI2)
 
     return segmI2, edgeI2
-
-
-def copy_image(path_to_problematic_images_dir, path_to_images_dir):
-    problematic_image_names_list = get_image_names(path_to_problematic_images_dir)
-
-    image_paths_list = get_image_paths(path_to_images_dir)
-
-    problematic_orig_image_paths_list = []
-    problematic_crop_image_paths_list = []
-    problematic_edge_image_paths_list = []
-    problematic_overlay_image_paths_list = []
-
-    for problematic_image_name in problematic_image_names_list:
-        path_to_problematic_orig_image = '../../data/new_dataset/orig/' + problematic_image_name + '.JPG'
-        path_to_problematic_crop_image = '../../data/new_dataset/crop/' + problematic_image_name + '.png'
-        path_to_problematic_edge_image = '../../data/new_dataset/crop/gt_boundary/' + problematic_image_name + '.png'
-        path_to_problematic_overlay_image = '../../data/new_dataset/orig/overlay/' + problematic_image_name + '.png'
-
-        problematic_orig_image_paths_list.append(path_to_problematic_orig_image)
-        problematic_crop_image_paths_list.append(path_to_problematic_crop_image)
-        problematic_edge_image_paths_list.append(path_to_problematic_edge_image)
-        problematic_overlay_image_paths_list.append(path_to_problematic_overlay_image)
-
-    right_image_paths_list = [item for item in image_paths_list if item not in problematic_overlay_image_paths_list]
-
-    for right_image_path in right_image_paths_list:
-        right_image_name = get_filename_from_path(right_image_path)
-        right_image_name += '.png'
-        right_image_dst_path = os.path.join('../../data/new_dataset/e_overlay', right_image_name)
-        copyfile(right_image_path, right_image_dst_path)
 
 
 def read_images_list_from_file(lst_file_path):
@@ -780,68 +916,6 @@ def output_problematic_image_lst_file_from_list(image_paths, output_image_lst_fi
         list_file.write("%s\n" % npath)
 
 
-def data_augmentation(root_path):
-    # for directory in directories:
-    images_list = get_image_paths(root_path)
-    augmented_image_save_dir = os.path.join(root_path, 'augmentation')
-    print('save augmented image: ', augmented_image_save_dir)
-    if not os.path.exists(augmented_image_save_dir):
-        os.makedirs(augmented_image_save_dir)
-
-    for image in images_list:
-        print('****************processing augmentation of image: ', image)
-        for rotation_angle in range(-10, 20, 10):
-            # Produces the augmented images
-            rotated_image = get_rotation_image(image, rotation_angle)
-            # rotated_image, rotated_edge_image = rotation_transformation()
-            # Resizes the rotated images (scale 0.5 and 1.5)
-            dim_0_5 = (int(0.5 * rotated_image.shape[1]), int(0.5 * rotated_image.shape[0]))
-            rotated_resized0_5_image = cv2.resize(rotated_image, dim_0_5, interpolation=cv2.INTER_AREA)
-            dim_1_5 = (int(1.5 * rotated_image.shape[1]), int(rotated_image.shape[0] * 1.5))
-            rotated_resized1_5_image = cv2.resize(rotated_image, dim_1_5, interpolation=cv2.INTER_AREA)
-            # Flips rotated and resized images
-            rotated_horizontally_flipped_image = cv2.flip(rotated_image, 0)
-            rotated_vertically_flipped_image = cv2.flip(rotated_image, 1)
-            rotated_resized0_5_horizontally_flipped_image = cv2.flip(rotated_resized0_5_image, 0)
-            rotated_resized0_5_vertically_flipped_image= cv2.flip(rotated_resized0_5_image, 1)
-            rotated_resized1_5_horizontally_flipped_image = cv2.flip(rotated_resized1_5_image, 0)
-            rotated_resized1_5_vertically_flipped_image = cv2.flip(rotated_resized1_5_image, 1)
-
-            # Saves augmented images
-            path, filename = os.path.split(image)
-            filename = os.path.splitext(filename)[0]
-            # Generates the filename of the augmented images
-            rotated_image_name = filename + '_rotated' + `rotation_angle` + '.png'
-            rotated_resized0_5_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '.png'
-            rotated_resized1_5_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '.png'
-            rotated_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + 'horizontally_flipped' + '.png'
-            rotated_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + 'vertically_flipped' + '.png'
-            rotated_resized0_5_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '_horizontally_flipped' + '.png'
-            rotated_resized0_5_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized0_5' + '_horizontally_flipped' + '.png'
-            rotated_resized1_5_horizontally_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '_horizontally_flipped' + '.png'
-            rotated_resized1_5_vertically_flipped_image_name = filename + '_rotated' + `rotation_angle` + '_resized1_5' + '_horizontally_flipped' + '.png'
-            # Generates the path of the augmented images
-            rotated_image_save_path = os.path.join(augmented_image_save_dir, rotated_image_name)
-            rotated_resized0_5_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_image_name)
-            rotated_resized1_5_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_image_name)
-            rotated_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_horizontally_flipped_image_name)
-            rotated_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_vertically_flipped_image_name)
-            rotated_resized0_5_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_horizontally_flipped_image_name)
-            rotated_resized0_5_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized0_5_vertically_flipped_image_name)
-            rotated_resized1_5_horizontally_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_horizontally_flipped_image_name)
-            rotated_resized1_5_vertically_flipped_image_save_path = os.path.join(augmented_image_save_dir, rotated_resized1_5_vertically_flipped_image_name)
-
-            cv2.imwrite(rotated_image_save_path, rotated_image)
-            cv2.imwrite(rotated_resized0_5_image_save_path, rotated_resized0_5_image)
-            cv2.imwrite(rotated_resized1_5_image_save_path, rotated_resized1_5_image)
-            cv2.imwrite(rotated_horizontally_flipped_image_save_path, rotated_horizontally_flipped_image)
-            cv2.imwrite(rotated_vertically_flipped_image_save_path, rotated_vertically_flipped_image)
-            cv2.imwrite(rotated_resized0_5_horizontally_flipped_image_save_path, rotated_resized0_5_horizontally_flipped_image)
-            cv2.imwrite(rotated_resized0_5_vertically_flipped_image_save_path, rotated_resized0_5_vertically_flipped_image)
-            cv2.imwrite(rotated_resized1_5_horizontally_flipped_image_save_path, rotated_resized1_5_horizontally_flipped_image)
-            cv2.imwrite(rotated_resized1_5_vertically_flipped_image_save_path, rotated_resized1_5_vertically_flipped_image)
-
-
 def parse_args(argv):
     import argparse
     parser = argparse.ArgumentParser()
@@ -870,23 +944,30 @@ def main(argv):
     output_augmented_images_path = args.output_augmented_images_path
 
     if cmd == 'get_lst_file_from_dir':
+        print('1')
         # Outputs a lst file which contains the paths of every images in the directory input_image_path
         # to output_image_lst_file_path
-        output_lst_file_from_list(image_paths, output_image_lst_file_path)
+        # output_lst_file_from_list(image_paths, output_image_lst_file_path)
     elif cmd == 'get_trainpair_lst_file':
-        print('get_trainpair_lst_file')
+        get_train_pair_list('../../data/new_dataset/big/augmentation/', '../../data/new_dataset/e_edge/augmentation/',
+                            '../../data/new_dataset/train_pair.lst')
     elif cmd == 'data_augmentation':
         print('data_augmentation')
-        data_augmentation(input_image_path)
+        db_path = '../../data/new_dataset/out.mat'
+        orig_img_path = '../../data/new_dataset/big/'
+        edge_img_path = '../../data/new_dataset/e_edge/'
+        right_image_path = '../../data/new_dataset/e_edge/'
+        data_augmentation(db_path, orig_img_path, edge_img_path, right_image_path)
     elif cmd == 'get_ground_truth':
         get_ground_truth(input_image_path)
     elif cmd == 'overlay':
         overlay_edge_images_on_orignal_images('../../data/new_dataset/orig/',
                                               '../../data/new_dataset/crop/gt_boundary/')
     elif cmd == 'test':
+        print('test')
         # get_rotation_image('../../data/test_rotation/0006_HG_120601_215_E3_LH_rotation0.png', -10)
         # overlay_edge_images_on_orignal_images('../../data/new_dataset/big/augmentation', '../../data/new_dataset/e_edge/augmentation')
-        test()
+        # test(input_image_path)
         # read_images_list_from_file('../../data/new_dataset/crop/gt_boundary/problematic_images.txt')
         # test('../../data/new_dataset/data_cleaning/', '../../data/new_dataset/orig/overlay')
         # transformation()
