@@ -39,7 +39,7 @@ base_weights = '5stage-vgg.caffemodel'
 print("*****************Successfully loaded caffemodel**********************")
 
 # init
-caffe.set_mode_cpu()
+caffe.set_mode_gpu()
 # caffe.set_device(0)
 
 print('******************Successfully set cpu mode**********************')

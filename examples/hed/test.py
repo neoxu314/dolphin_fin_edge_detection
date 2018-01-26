@@ -13,13 +13,13 @@ import sys
 
 
 # Make sure that caffe is on the python path:
-caffe_root = '/opt/caffe/'  # this file is expected to be in {caffe_root}/examples/hed/
+caffe_root = '/../../'  # this file is expected to be in {caffe_root}/examples/hed/
 
 sys.path.insert(0, caffe_root + 'python')
 import caffe
 
-data_root = '../../data/HED-BSDS/'
-with open(data_root + 'test1.lst') as f:
+data_root = '../../data/new_dataset/'
+with open(data_root + 'test.lst') as f:
     test_lst = f.readlines()
 
 test_lst = [data_root + x.strip() for x in test_lst]
@@ -61,7 +61,7 @@ caffe.set_mode_cpu()
 # caffe.set_device(0)
 # load net
 model_root = './'
-net = caffe.Net(model_root+'deploy.prototxt', model_root+'hed_pretrained_bsds.caffemodel', caffe.TEST)
+net = caffe.Net(model_root+'deploy.prototxt', model_root+'hed_iter_65000.caffemodel', caffe.TEST)
 # shape for input (data blob is N x C x H x W), set data
 net.blobs['data'].reshape(1, *in_.shape)
 net.blobs['data'].data[...] = in_
